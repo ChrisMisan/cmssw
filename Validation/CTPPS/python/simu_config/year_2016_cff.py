@@ -4,6 +4,8 @@ from Validation.CTPPS.simu_config.base_cff import *
 
 # geometry
 from Geometry.VeryForwardGeometry.geometryRPFromDD_2017_cfi import * # using 2017 here is OK
+del XMLIdealGeometryESSource_CTPPS
+del ctppsGeometryESModule
 
 # local reconstruction
 ctppsLocalTrackLiteProducer.includeStrips = True

@@ -1,5 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
+from CalibPPS.ESProducers.CTPPSCompositeESSource_cfi import *
 # load standard files
 from RecoPPS.ProtonReconstruction.ctppsProtons_cff import *
 
@@ -12,39 +13,15 @@ from RecoPPS.ProtonReconstruction.ctppsProtons_cff import *
 #del esPreferLocalOptics
 del ctppsInterpolatedOpticalFunctionsESSource
 
-# beam parameters as declared by LHC
-ctppsLHCInfoESSource = cms.ESSource("CTPPSLHCInfoESSource",
-  label = cms.string(""),
-  validityRange = cms.EventRange("0:min - 999999:max"),
-  beamEnergy = cms.double(6500),  # GeV
-  xangle = cms.double(-1)  # murad
-)
 
 # beam parameters as determined by PPS
-ctppsBeamParametersESSource = cms.ESSource("CTPPSBeamParametersESSource",
-  setBeamPars = cms.bool(True),
-
-  #  beam momentum  (GeV)
-  beamMom45 = cms.double(6500.),
-  beamMom56 = cms.double(6500.),
-
-  #  beta*  (cm)
-  betaStarX45 = cms.double(0.),
-  betaStarX56 = cms.double(0.),
-  betaStarY45 = cms.double(0.),
-  betaStarY56 = cms.double(0.),
+ctppsBeamParametersFromLHCInfoESSource = cms.ESProducer("CTPPSBeamParametersFromLHCInfoESSource",
 
   #  beam divergence  (rad)
   beamDivX45 = cms.double(30E-6),
   beamDivX56 = cms.double(30E-6),
   beamDivY45 = cms.double(30E-6),
   beamDivY56 = cms.double(30E-6),
-
-  #  half crossing angle  (rad)
-  halfXangleX45 = cms.double(-1),
-  halfXangleX56 = cms.double(-1),
-  halfXangleY45 = cms.double(0.),
-  halfXangleY56 = cms.double(0.),
 
   #  vertex offset  (cm)
   vtxOffsetX45 = cms.double(0.),
@@ -53,14 +30,12 @@ ctppsBeamParametersESSource = cms.ESSource("CTPPSBeamParametersESSource",
   vtxOffsetY56 = cms.double(0.),
   vtxOffsetZ45 = cms.double(0.),
   vtxOffsetZ56 = cms.double(0.),
-  vtxOffsetT45 = cms.double(0.),
-  vtxOffsetT56 = cms.double(0.),
 
   #  vertex sigma  (cm)
   vtxStddevX = cms.double(10E-4),
   vtxStddevY = cms.double(10E-4),
   vtxStddevZ = cms.double(5),
-  vtxStddevT = cms.double(6)
+  lhcInfoLabel=cms.string("")
 )
 
 # particle-data table
@@ -76,7 +51,8 @@ RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService",
 
 # default source
 source = cms.Source("EmptySource",
-  firstRun = cms.untracked.uint32(1)
+  firstRun = cms.untracked.uint32(1),
+  numberEventsInLuminosityBlock=cms.untracked.uint32(100)
 )
 
 # particle generator
@@ -117,23 +93,34 @@ ctppsProtons.tagLocalTrackLite = cms.InputTag('ctppsLocalTrackLiteProducer')
 
 #----------------------------------------------------------------------------------------------------
 
-def SetLevel1(process):
-  process.ctppsBeamParametersESSource.vtxStddevX = 0E-4
-  process.ctppsBeamParametersESSource.vtxStddevZ = 0
+def SetSmearingLevel1(obj):
+  obj.vtxStddevX = 0E-4
+  obj.vtxStddevZ = 0
 
-  process.ctppsBeamParametersESSource.beamDivX45 = 0E-6
-  process.ctppsBeamParametersESSource.beamDivX56 = 0E-6
-  process.ctppsBeamParametersESSource.beamDivY45 = 0E-6
-  process.ctppsBeamParametersESSource.beamDivY56 = 0E-6
+  obj.beamDivX45 = 0E-6
+  obj.beamDivX56 = 0E-6
+  obj.beamDivY45 = 0E-6
+  obj.beamDivY56 = 0E-6
+
+def SetLevel1(process):
+  if hasattr(process, "ctppsBeamParametersESSource"):
+    SetSmearingLevel1(process.ctppsBeamParametersESSource)
+  else:
+    SetSmearingLevel1(process.ctppsBeamParametersFromLHCInfoESSource)
 
   process.ctppsDirectProtonSimulation.roundToPitch = False
 
+def SetSmearingLevel2(obj):
+  obj.beamDivX45 = 0E-6
+  obj.beamDivX56 = 0E-6
+  obj.beamDivY45 = 0E-6
+  obj.beamDivY56 = 0E-6
 
 def SetLevel2(process):
-  process.ctppsBeamParametersESSource.beamDivX45 = 0E-6
-  process.ctppsBeamParametersESSource.beamDivX56 = 0E-6
-  process.ctppsBeamParametersESSource.beamDivY45 = 0E-6
-  process.ctppsBeamParametersESSource.beamDivY56 = 0E-6
+  if hasattr(process, "ctppsBeamParametersESSource"):
+    SetSmearingLevel2(process.ctppsBeamParametersESSource)
+  else:
+    SetSmearingLevel2(process.ctppsBeamParametersFromLHCInfoESSource)
 
   process.ctppsDirectProtonSimulation.roundToPitch = False
 
@@ -154,8 +141,5 @@ def SetLowTheta(process):
 def SetLargeTheta(process):
   pass
 
-# xangle in murad
-def UseCrossingAngle(xangle, process):
-  process.ctppsLHCInfoESSource.xangle = xangle
-  process.ctppsBeamParametersESSource.halfXangleX45 = xangle * 1E-6
-  process.ctppsBeamParametersESSource.halfXangleX56 = xangle * 1E-6
+default_xangle_beta_star_file = "CalibPPS/ESProducers/data/xangle_beta_distributions/version1.root"
+

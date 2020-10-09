@@ -35,6 +35,7 @@ private:
 
 public:
   CTPPSRPAlignmentCorrectionsData() {}
+  
 
   /// returns the map of RP alignment corrections
   const mapType& getRPMap() const { return rps_; }
