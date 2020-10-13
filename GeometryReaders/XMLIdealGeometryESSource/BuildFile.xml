@@ -7,4 +7,6 @@
 <use name="CondFormats/Common"/>
 <use name="CondFormats/GeometryObjects"/>
 <use name="MagneticField/Records"/>
-<flags EDM_PLUGIN="1"/>
+<export>
+  <lib name="1"/>
+</export>

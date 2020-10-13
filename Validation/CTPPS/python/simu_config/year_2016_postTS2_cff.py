@@ -2,49 +2,69 @@ import FWCore.ParameterSet.Config as cms
 
 from Validation.CTPPS.simu_config.year_2016_cff import *
 
-# alignment
-from CalibPPS.ESProducers.ctppsRPAlignmentCorrectionsDataESSourceXML_cfi import *
-alignmentFile = "Validation/CTPPS/alignment/2016_postTS2.xml"
-ctppsRPAlignmentCorrectionsDataESSourceXML.MisalignedFiles = [alignmentFile]
-ctppsRPAlignmentCorrectionsDataESSourceXML.RealFiles = [alignmentFile]
-
-# beam optics
-from CalibPPS.ESProducers.ctppsOpticalFunctionsESSource_cfi import *
-
-config_2016_postTS2 = cms.PSet(
-  validityRange = cms.EventRange("0:min - 999999:max"),
-
-  opticalFunctions = cms.VPSet(
-    cms.PSet( xangle = cms.double(140), fileName = cms.FileInPath("CalibPPS/ESProducers/data/optical_functions/2016_postTS2/version2/140urad.root") )
+profile_2016_postTS2=cms.PSet(
+  L_i=cms.double(1),
+  #LHCInfo
+  ctppsLHCInfo = cms.PSet(
+	xangle=cms.double(-1),
+	betaStar=cms.double(-1),
+  	beamEnergy = cms.double(6500),  # GeV
+  	xangleBetaStarHistogramFile=cms.string(default_xangle_beta_star_file),
+  	xangleBetaStarHistogramObject=cms.string("2016_postTS2/h2_betaStar_vs_xangle")
   ),
 
-  scoringPlanes = cms.VPSet(
-      # z in cm
-      cms.PSet( rpId = cms.uint32(0x76100000), dirName = cms.string("XRPH_C6L5_B2"), z = cms.double(-20382.6) ),  # RP 002, strip
-      cms.PSet( rpId = cms.uint32(0x76180000), dirName = cms.string("XRPH_D6L5_B2"), z = cms.double(-21255.1) ),  # RP 003, strip
-      cms.PSet( rpId = cms.uint32(0x77100000), dirName = cms.string("XRPH_C6R5_B1"), z = cms.double(+20382.6) ),  # RP 102, strip
-      cms.PSet( rpId = cms.uint32(0x77180000), dirName = cms.string("XRPH_D6R5_B1"), z = cms.double(+21255.1) ),  # RP 103, strip
+  #Optics
+  ctppsOpticalFunctions = cms.PSet(
+
+  	opticalFunctions = cms.VPSet(
+    		cms.PSet( xangle = cms.double(140), fileName = cms.FileInPath("CalibPPS/ESProducers/data/optical_functions/2016_postTS2/version2/140urad.root") )
+  	),
+
+  	scoringPlanes = cms.VPSet(
+	      # z in cm
+	      cms.PSet( rpId = cms.uint32(0x76100000), dirName = cms.string("XRPH_C6L5_B2"), z = cms.double(-20382.6) ),  # RP 002, strip
+	      cms.PSet( rpId = cms.uint32(0x76180000), dirName = cms.string("XRPH_D6L5_B2"), z = cms.double(-21255.1) ),  # RP 003, strip
+	      cms.PSet( rpId = cms.uint32(0x77100000), dirName = cms.string("XRPH_C6R5_B1"), z = cms.double(+20382.6) ),  # RP 102, strip
+	      cms.PSet( rpId = cms.uint32(0x77180000), dirName = cms.string("XRPH_D6R5_B1"), z = cms.double(+21255.1) ),  # RP 103, strip
+  	)
+  ),
+  #geometry
+  xmlIdealGeometry=cms.PSet(
+	geomXMLFiles = totemGeomXMLFiles + ctppsDiamondGeomXMLFiles + ctppsUFSDGeomXMLFiles + ctppsPixelGeomXMLFiles,
+	rootNodeName = cms.string('cms:CMSE')
+
+  ),
+  #alignment
+  ctppsRPAlignmentCorrectionsDataXML=cms.PSet(
+	MeasuredFiles=cms.vstring(),
+	RealFiles=cms.vstring("Validation/CTPPS/alignment/2016_postTS2.xml"),
+	MisalignedFiles=cms.vstring("Validation/CTPPS/alignment/2016_postTS2.xml")
+  ),
+
+  #direct simu data
+  ctppsDirectSimuData=cms.PSet(
+	useEmpiricalApertures=cms.bool(True),
+	empiricalAperture45=cms.string("4.09513E-06+(([xi]<0.104719)*0.00972149+([xi]>=0.104719)*0.0350197)*([xi]-0.104719)"),
+	empiricalAperture56=cms.string("2.0617E-05+(([xi]<0.14324)*0.00475349+([xi]>=0.14324)*0.00629514)*([xi]-0.14324)"),
+	timeResolutionDiamonds45=cms.string("0.200"),
+	timeResolutionDiamonds56=cms.string("0.200"),
+	useTimeEfficiencyCheck=cms.bool(False),
+	effTimePath=cms.string(""),
+	effTimeObject45=cms.string(""),
+	effTimeObject56=cms.string("")
   )
 )
 
-ctppsOpticalFunctionsESSource.configuration.append(config_2016_postTS2)
+profile_2016_postTS2.xmlIdealGeometry.geomXMLFiles.append("Geometry/VeryForwardData/data/2016_ctpps_15sigma_margin0/RP_Dist_Beam_Cent.xml")
 
 from CalibPPS.ESProducers.ctppsInterpolatedOpticalFunctionsESSource_cfi import *
 ctppsInterpolatedOpticalFunctionsESSource.lhcInfoLabel = ""
 
-# aperture cuts
-ctppsDirectProtonSimulation.useEmpiricalApertures = True
+def UseConstantXangleBetaStar(process, xangle, betaStar):
+  process.profile_2016_postTS2.ctppsLHCInfo.xangle = xangle
+  process.profile_2016_postTS2.ctppsLHCInfo.betaStar = betaStar
 
-ctppsDirectProtonSimulation.empiricalAperture45="6.10374E-05+(([xi]<0.113491)*0.00795942+([xi]>=0.113491)*0.01935)*([xi]-0.113491)"
-ctppsDirectProtonSimulation.empiricalAperture56="([xi]-0.110)/130.0"
+def UseXangleBetaStarHistogram(process,f, obj):
+  process.profile_2016_postTS2.ctppsLHCInfo.xangleBetaStarHistogramFile = f
+  process.profile_2016_postTS2.ctppsLHCInfo.xangleBetaStarHistogramObject = obj
 
-# xangle/beta* options
-def UseDefaultXangleBetaStar(process):
-  UseCrossingAngle(140, process)
-
-def UseDefaultXangleBetaStarDistribution(process):
-  UseXangleBetaStarHistogram(process, default_xangle_beta_star_file, "2016_postTS2/h2_betaStar_vs_xangle")
-
-# defaults
-def SetDefaults(process):
-  UseDefaultXangleBetaStarDistribution(process)
