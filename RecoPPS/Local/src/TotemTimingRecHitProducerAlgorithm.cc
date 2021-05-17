@@ -10,6 +10,7 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "RecoPPS/Local/interface/TotemTimingRecHitProducerAlgorithm.h"
+#include "DataFormats/CTPPSDetId/interface/CTPPSDiamondDetId.h"
 
 #include <numeric>
 
@@ -31,13 +32,64 @@ void TotemTimingRecHitProducerAlgorithm::setCalibration(const PPSTimingCalibrati
 }
 
 //----------------------------------------------------------------------------------------------------
+float TotemTimingRecHitProducerAlgorithm::timeOfFirstSample(const TotemTimingDigi& digi) const {
+  static constexpr float SAMPIC_SAMPLING_PERIOD_NS = 1. / 7.695;
+  static constexpr float SAMPIC_ADC_V = 1. / 256;
+  static constexpr int SAMPIC_MAX_NUMBER_OF_SAMPLES = 64;
+  static constexpr int SAMPIC_DEFAULT_OFFSET = 30;
+  static constexpr int ACCEPTED_TIME_RADIUS = 4;
+  static constexpr unsigned long CELL0_MASK = 0xfffffff000;
+  unsigned int offsetOfSamples = digi.eventInfo().offsetOfSamples();
+  if (offsetOfSamples == 0)
+    offsetOfSamples = SAMPIC_DEFAULT_OFFSET;  // FW 0 is not sending this, FW > 0 yes
+
+
+
+  unsigned int timestamp =
+      (digi.cellInfo() <= SAMPIC_MAX_NUMBER_OF_SAMPLES / 2) ? digi.timestampA() : digi.timestampB();
+
+
+
+  int cell0TimeClock = timestamp + ((digi.fpgaTimestamp() - timestamp) & CELL0_MASK) - digi.eventInfo().l1ATimestamp() +
+                       digi.eventInfo().l1ALatency();
+
+  edm::LogProblem("TotemTimingRecHitProducerAlgorithm") <<"fpgaTimestamp "<<digi.fpgaTimestamp();
+  edm::LogProblem("TotemTimingRecHitProducerAlgorithm") <<"l1ATimestamp "<<digi.eventInfo().l1ATimestamp();
+  edm::LogProblem("TotemTimingRecHitProducerAlgorithm") <<"l1ALatency "<<digi.eventInfo().l1ALatency();
+  // time of first cell
+  float cell0TimeInstant = SAMPIC_MAX_NUMBER_OF_SAMPLES * SAMPIC_SAMPLING_PERIOD_NS * cell0TimeClock;
+
+  
+
+  // time of triggered cell
+  float firstCellTimeInstant =
+      (digi.cellInfo() < offsetOfSamples)
+          ? cell0TimeInstant + digi.cellInfo() * SAMPIC_SAMPLING_PERIOD_NS
+          : cell0TimeInstant - (SAMPIC_MAX_NUMBER_OF_SAMPLES - digi.cellInfo()) * SAMPIC_SAMPLING_PERIOD_NS;
+
+
+
+  int db = digi.hardwareBoardId();
+  int sampic = digi.hardwareSampicId();
+  int channel = digi.hardwareChannelId();
+  float t = firstCellTimeInstant ;//+ calibration_.timeOffset(db, sampic, channel);
+  //NOTE: If no time offset is set, timeOffset returns 0
+  if (mergeTimePeaks_) {
+    if (t < -ACCEPTED_TIME_RADIUS)
+      t += SAMPIC_MAX_NUMBER_OF_SAMPLES * SAMPIC_SAMPLING_PERIOD_NS;
+    if (t > ACCEPTED_TIME_RADIUS)
+      t -= SAMPIC_MAX_NUMBER_OF_SAMPLES * SAMPIC_SAMPLING_PERIOD_NS;
+  }
+  edm::LogProblem("TotemTimingRecHitProducerAlgorithm") <<"output "<<t;
+  return t;
+}
 
 void TotemTimingRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
                                                const edm::DetSetVector<TotemTimingDigi>& input,
                                                edm::DetSetVector<TotemTimingRecHit>& output) {
   for (const auto& vec : input) {
-    const TotemTimingDetId detid(vec.detId());
-
+    const CTPPSDiamondDetId detid(vec.detId());
+    
     float x_pos = 0.f, y_pos = 0.f, z_pos = 0.f;
     float x_width = 0.f, y_width = 0.f, z_width = 0.f;
 
@@ -64,23 +116,29 @@ void TotemTimingRecHitProducerAlgorithm::build(const CTPPSGeometry& geom,
       const float timePrecision(sampicConversions_->timePrecision(digi));
       const std::vector<float> time(sampicConversions_->timeSamples(digi));
       std::vector<float> data(sampicConversions_->voltSamples(digi));
+      timeOfFirstSample(digi);
 
       auto max_it = std::max_element(data.begin(), data.end());
 
       RegressionResults baselineRegression = simplifiedLinearRegression(time, data, 0, baselinePoints_);
 
       // remove baseline
+      std::stringstream ssLog;
       std::vector<float> dataCorrected(data.size());
-      for (unsigned int i = 0; i < data.size(); ++i)
-        dataCorrected[i] = data[i] - (baselineRegression.q + baselineRegression.m * time[i]);
+      for (unsigned int i = 0; i < data.size(); ++i){
+        dataCorrected[i] = data[i];//data[i] - (baselineRegression.q + baselineRegression.m * time[i]);
+        dataCorrected[i] = -1*dataCorrected[i]+1;
+  
+      }
       auto max_corrected_it = std::max_element(dataCorrected.begin(), dataCorrected.end());
-
+      
+      
       float t = TotemTimingRecHit::NO_T_AVAILABLE;
       if (*max_it < saturationLimit_)
         t = constantFractionDiscriminator(time, dataCorrected);
+      
 
       mode_ = TotemTimingRecHit::CFD;
-
       rec_hits.push_back(TotemTimingRecHit(x_pos,
                                            x_width,
                                            y_pos,

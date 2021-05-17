@@ -21,7 +21,7 @@
 
 #include "DataFormats/Common/interface/DetSetVector.h"
 
-#include "DataFormats/CTPPSDetId/interface/TotemTimingDetId.h"
+#include "DataFormats/CTPPSDetId/interface/CTPPSDiamondDetId.h"
 #include "DataFormats/CTPPSReco/interface/TotemTimingRecHit.h"
 #include "DataFormats/CTPPSReco/interface/TotemTimingLocalTrack.h"
 
@@ -38,7 +38,7 @@ private:
 
   const edm::EDGetTokenT<edm::DetSetVector<TotemTimingRecHit> > recHitsToken_;
   const int maxPlaneActiveChannels_;
-  std::map<TotemTimingDetId, TotemTimingTrackRecognition> trk_algo_map_;
+  std::map<CTPPSDiamondDetId, TotemTimingTrackRecognition> trk_algo_map_;
 };
 
 TotemTimingLocalTrackFitter::TotemTimingLocalTrackFitter(const edm::ParameterSet& iConfig)
@@ -46,9 +46,9 @@ TotemTimingLocalTrackFitter::TotemTimingLocalTrackFitter(const edm::ParameterSet
       maxPlaneActiveChannels_(iConfig.getParameter<int>("maxPlaneActiveChannels")) {
   produces<edm::DetSetVector<TotemTimingLocalTrack> >();
 
-  for (unsigned short armNo = 0; armNo < 2; armNo++)
-    for (unsigned short rpNo = 0; rpNo < 2; rpNo++) {
-      TotemTimingDetId id(armNo, 1, rpNo, 0, 0);
+  for (unsigned short armNo = 0; armNo < 2; armNo++){//
+    //for (unsigned short rpNo = 0; rpNo < 2; rpNo++) {//
+      CTPPSDiamondDetId id(armNo, 1, 6, 0, 0);
       TotemTimingTrackRecognition trk_algo(iConfig.getParameter<edm::ParameterSet>("trackingAlgorithmParams"));
       trk_algo_map_.insert(std::make_pair(id, trk_algo));
     }
@@ -63,10 +63,10 @@ void TotemTimingLocalTrackFitter::produce(edm::Event& iEvent, const edm::EventSe
   for (const auto& trk_algo_entry : trk_algo_map_)
     pOut->find_or_insert(trk_algo_entry.first);
 
-  std::map<TotemTimingDetId, int> planeActivityMap;
+  std::map<CTPPSDiamondDetId, int> planeActivityMap;
 
   auto motherId = [](const edm::det_id_type& detid) {
-    TotemTimingDetId out(detid);
+    CTPPSDiamondDetId out(detid);
     out.setStation(1);
     out.setChannel(0);
     return out;

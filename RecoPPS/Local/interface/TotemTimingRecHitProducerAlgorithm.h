@@ -51,6 +51,8 @@ private:
 
   std::unique_ptr<TotemTimingConversions> sampicConversions_;
 
+  float timeOfFirstSample(const TotemTimingDigi& digi) const;
+
   bool mergeTimePeaks_;
   int baselinePoints_;
   double saturationLimit_;

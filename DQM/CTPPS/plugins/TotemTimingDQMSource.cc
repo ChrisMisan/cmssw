@@ -25,12 +25,12 @@
 #include "DataFormats/FEDRawData/interface/FEDNumbering.h"
 #include "DataFormats/Provenance/interface/EventRange.h"
 
-#include "DataFormats/CTPPSDetId/interface/TotemTimingDetId.h"
+#include "DataFormats/CTPPSDetId/interface/CTPPSDiamondDetId.h"
 #include "DataFormats/CTPPSDigi/interface/TotemTimingDigi.h"
 #include "DataFormats/CTPPSReco/interface/TotemTimingRecHit.h"
 
 #include "DataFormats/CTPPSDetId/interface/TotemRPDetId.h"
-#include "DataFormats/CTPPSReco/interface/TotemRPLocalTrack.h"
+#include "DataFormats/CTPPSReco/interface/TotemTimingLocalTrack.h"
 #include "Geometry/Records/interface/VeryForwardRealGeometryRecord.h"
 #include "Geometry/VeryForwardGeometryBuilder/interface/CTPPSGeometry.h"
 
@@ -96,7 +96,7 @@ private:
   edm::EDGetTokenT<edm::DetSetVector<TotemRPLocalTrack>> tokenLocalTrack_;
   edm::EDGetTokenT<edm::DetSetVector<TotemTimingDigi>> tokenDigi_;
   edm::EDGetTokenT<edm::DetSetVector<TotemTimingRecHit>> tokenRecHit_;
-  // edm::EDGetTokenT<edm::DetSetVector<TotemTimingLocalTrack>> tokenTrack_;
+  edm::EDGetTokenT<edm::DetSetVector<TotemTimingLocalTrack>> tokenTrack_;
   edm::EDGetTokenT<std::vector<TotemFEDInfo>> tokenFEDInfo_;
 
   double minimumStripAngleForTomography_;
@@ -106,6 +106,7 @@ private:
   edm::TimeValue_t timeOfPreviousEvent_;
 
   float verticalShiftBot_, verticalShiftTop_;
+  double horizontalShiftOfDiamond_;//modified
 
   /// plots related to the whole system
   struct GlobalPlots {
@@ -147,7 +148,7 @@ private:
     MonitorElement *planesWithDigis = nullptr;
     MonitorElement *planesWithTime = nullptr;
 
-    // MonitorElement *trackDistribution = nullptr;
+    MonitorElement *trackDistribution = nullptr;
 
     MonitorElement *stripTomography210 = nullptr;
     MonitorElement *stripTomography220 = nullptr;
@@ -216,15 +217,17 @@ const double TotemTimingDQMSource::SAMPIC_SAMPLING_PERIOD_NS = 1. / 7.8e9;
 const double TotemTimingDQMSource::SAMPIC_MAX_NUMBER_OF_SAMPLES = 64;
 const double TotemTimingDQMSource::SAMPIC_ADC_V = 1. / 256;
 const int TotemTimingDQMSource::CTPPS_NUM_OF_ARMS = 2;
-const int TotemTimingDQMSource::TOTEM_TIMING_STATION_ID = 2;
+
+const int TotemTimingDQMSource::TOTEM_TIMING_STATION_ID = 1;//2;
 const int TotemTimingDQMSource::TOTEM_STATION_210 = 0;
 const int TotemTimingDQMSource::TOTEM_STATION_220 = 2;
 const int TotemTimingDQMSource::TOTEM_TIMING_TOP_RP_ID = 0;
-const int TotemTimingDQMSource::TOTEM_TIMING_BOT_RP_ID = 1;
-const int TotemTimingDQMSource::TOTEM_STRIP_MIN_RP_ID = 4;
-const int TotemTimingDQMSource::TOTEM_STRIP_MAX_RP_ID = 5;
+const int TotemTimingDQMSource::TOTEM_TIMING_BOT_RP_ID = 6;//1;
+const int TotemTimingDQMSource::TOTEM_STRIP_MIN_RP_ID = 7;//4;
+const int TotemTimingDQMSource::TOTEM_STRIP_MAX_RP_ID = 7;//5;
 const int TotemTimingDQMSource::CTPPS_NEAR_RP_ID = 2;
 const int TotemTimingDQMSource::CTPPS_FAR_RP_ID = 3;
+
 const int TotemTimingDQMSource::TOTEM_TIMING_NUM_OF_PLANES = 4;
 const int TotemTimingDQMSource::TOTEM_TIMING_NUM_OF_CHANNELS = 12;
 const int TotemTimingDQMSource::TOTEM_TIMING_FED_ID_45 = FEDNumbering::MAXTotemRPTimingVerticalFEDID;
@@ -245,10 +248,10 @@ TotemTimingDQMSource::GlobalPlots::GlobalPlots(DQMStore::IBooker &ibooker) {
 
 TotemTimingDQMSource::PotPlots::PotPlots(DQMStore::IBooker &ibooker, unsigned int id) {
   std::string path, title;
-  TotemTimingDetId(id).rpName(path, TotemTimingDetId::nPath);
+  CTPPSDiamondDetId(id).rpName(path, CTPPSDiamondDetId::nPath);
   ibooker.setCurrentFolder(path);
 
-  TotemTimingDetId(id).rpName(title, TotemTimingDetId::nFull);
+  CTPPSDiamondDetId(id).rpName(title, CTPPSDiamondDetId::nFull);
 
   activityPerBX = ibooker.book1D("activity per BX CMS", title + " Activity per BX;Event.BX", 3600, -1.5, 3598. + 0.5);
 
@@ -275,20 +278,20 @@ TotemTimingDQMSource::PotPlots::PotPlots(DQMStore::IBooker &ibooker, unsigned in
 
   hitDistribution2d = ibooker.book2D("hits in planes",
                                      title + " hits in planes;plane number;x (mm)",
-                                     18,
+                                     10,
                                      -0.5,
-                                     4,
-                                     15. * INV_DISPLAY_RESOLUTION_FOR_HITS_MM,
-                                     0,
-                                     15);
+                                     4.5,
+                                     19. * INV_DISPLAY_RESOLUTION_FOR_HITS_MM,
+                                     -0.5,
+                                     18.5);
   hitDistribution2dWithTime = ibooker.book2D("hits in planes with time",
                                              title + " hits in planes with time;plane number;x (mm)",
-                                             18,
+                                             10,
                                              -0.5,
-                                             4,
-                                             15. * INV_DISPLAY_RESOLUTION_FOR_HITS_MM,
-                                             0,
-                                             15);
+                                             4.5,
+                                             19. * INV_DISPLAY_RESOLUTION_FOR_HITS_MM,
+                                             -0.5,
+                                             18.5);
   hitDistribution2d_lumisection = ibooker.book2D("hits in planes lumisection",
                                                  title + " hits in planes in the last lumisection;plane number;x (mm)",
                                                  18,
@@ -313,8 +316,7 @@ TotemTimingDQMSource::PotPlots::PotPlots(DQMStore::IBooker &ibooker, unsigned in
   planesWithTime = ibooker.book1D(
       "active planes with time", title + " active planes with time (per event);number of active planes", 6, -0.5, 5.5);
 
-  // trackDistribution = ibooker.book1D( "tracks", title+" tracks;x (mm)",
-  //     19.*INV_DISPLAY_RESOLUTION_FOR_HITS_MM, -1, 18 );    //TODO needs tracks
+   trackDistribution = ibooker.book1D( "tracks", title+" tracks;x (mm)",19.*INV_DISPLAY_RESOLUTION_FOR_HITS_MM, -1, 18 );    //TODO needs tracks
 
   stripTomography210 =
       ibooker.book2D("tomography 210",
@@ -340,10 +342,10 @@ TotemTimingDQMSource::PotPlots::PotPlots(DQMStore::IBooker &ibooker, unsigned in
 
 TotemTimingDQMSource::PlanePlots::PlanePlots(DQMStore::IBooker &ibooker, unsigned int id) {
   std::string path, title;
-  TotemTimingDetId(id).planeName(path, TotemTimingDetId::nPath);
+  CTPPSDiamondDetId(id).planeName(path, CTPPSDiamondDetId::nPath);
   ibooker.setCurrentFolder(path);
 
-  TotemTimingDetId(id).planeName(title, TotemTimingDetId::nFull);
+  CTPPSDiamondDetId(id).planeName(title, CTPPSDiamondDetId::nFull);
 
   digiDistribution = ibooker.book1D("digi distribution", title + " digi distribution;channel", 12, 0, 12);
 
@@ -363,10 +365,10 @@ TotemTimingDQMSource::PlanePlots::PlanePlots(DQMStore::IBooker &ibooker, unsigne
 
 TotemTimingDQMSource::ChannelPlots::ChannelPlots(DQMStore::IBooker &ibooker, unsigned int id) {
   std::string path, title;
-  TotemTimingDetId(id).channelName(path, TotemTimingDetId::nPath);
+  CTPPSDiamondDetId(id).channelName(path, CTPPSDiamondDetId::nPath);
   ibooker.setCurrentFolder(path);
 
-  TotemTimingDetId(id).channelName(title, TotemTimingDetId::nFull);
+  CTPPSDiamondDetId(id).channelName(title, CTPPSDiamondDetId::nFull);
 
   activityPerBX = ibooker.book1D("activity per BX", title + " Activity per BX;Event.BX", 1000, -1.5, 998. + 0.5);
   dataSamplesRaw = ibooker.book1D("raw samples", title + " Raw Samples; ADC", 256, 0, 256);
@@ -404,8 +406,7 @@ TotemTimingDQMSource::TotemTimingDQMSource(const edm::ParameterSet &ps)
     : tokenLocalTrack_(consumes<edm::DetSetVector<TotemRPLocalTrack>>(ps.getParameter<edm::InputTag>("tagLocalTrack"))),
       tokenDigi_(consumes<edm::DetSetVector<TotemTimingDigi>>(ps.getParameter<edm::InputTag>("tagDigi"))),
       tokenRecHit_(consumes<edm::DetSetVector<TotemTimingRecHit>>(ps.getParameter<edm::InputTag>("tagRecHits"))),
-      // tokenTrack_(consumes<edm::DetSetVector<TotemTimingLocalTrack>>(
-      //     ps.getParameter<edm::InputTag>("tagLocalTracks"))),
+      tokenTrack_(consumes<edm::DetSetVector<TotemTimingLocalTrack>>(ps.getParameter<edm::InputTag>("tagTracks"))),
       tokenFEDInfo_(consumes<std::vector<TotemFEDInfo>>(ps.getParameter<edm::InputTag>("tagFEDInfo"))),
       minimumStripAngleForTomography_(ps.getParameter<double>("minimumStripAngleForTomography")),
       maximumStripAngleForTomography_(ps.getParameter<double>("maximumStripAngleForTomography")),
@@ -424,8 +425,8 @@ void TotemTimingDQMSource::dqmBeginRun(const edm::Run &iRun, const edm::EventSet
   edm::ESHandle<CTPPSGeometry> geometry_;
   iSetup.get<VeryForwardRealGeometryRecord>().get(geometry_);
   const CTPPSGeometry *geom = geometry_.product();
-  const TotemTimingDetId detid_top(0, TOTEM_TIMING_STATION_ID, TOTEM_TIMING_BOT_RP_ID, 0, 0);
-  const TotemTimingDetId detid_bot(0, TOTEM_TIMING_STATION_ID, TOTEM_TIMING_TOP_RP_ID, 0, 7);
+  const CTPPSDiamondDetId detid_top(0, TOTEM_TIMING_STATION_ID, TOTEM_TIMING_TOP_RP_ID, 0, 0);
+  const CTPPSDiamondDetId detid_bot(0, TOTEM_TIMING_STATION_ID, TOTEM_TIMING_BOT_RP_ID, 0, 0);
   verticalShiftTop_ = 0;
   verticalShiftBot_ = 0;
   {
@@ -435,8 +436,11 @@ void TotemTimingDQMSource::dqmBeginRun(const edm::Run &iRun, const edm::EventSet
     }
     const DetGeomDesc *det_bot = geom->sensorNoThrow(detid_bot);
     if (det_bot)
-      verticalShiftBot_ = det_bot->translation().y() + det_bot->params().at(1);
+      horizontalShiftOfDiamond_ = det_bot->translation().x() - det_bot->params().at(0);
   }
+
+
+
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -449,13 +453,13 @@ void TotemTimingDQMSource::bookHistograms(DQMStore::IBooker &ibooker, const edm:
 
   for (unsigned short arm = 0; arm < CTPPS_NUM_OF_ARMS; ++arm) {
     for (unsigned short rp = TOTEM_TIMING_TOP_RP_ID; rp <= TOTEM_TIMING_BOT_RP_ID; ++rp) {
-      const TotemTimingDetId rpId(arm, TOTEM_TIMING_STATION_ID, rp);
+      const CTPPSDiamondDetId rpId(arm, TOTEM_TIMING_STATION_ID, rp);
       potPlots_[rpId] = PotPlots(ibooker, rpId);
       for (unsigned short pl = 0; pl < TOTEM_TIMING_NUM_OF_PLANES; ++pl) {
-        const TotemTimingDetId plId(arm, TOTEM_TIMING_STATION_ID, rp, pl);
+        const CTPPSDiamondDetId plId(arm, TOTEM_TIMING_STATION_ID, rp, pl);
         planePlots_[plId] = PlanePlots(ibooker, plId);
         for (unsigned short ch = 0; ch < TOTEM_TIMING_NUM_OF_CHANNELS; ++ch) {
-          const TotemTimingDetId chId(arm, TOTEM_TIMING_STATION_ID, rp, pl, ch);
+          const CTPPSDiamondDetId chId(arm, TOTEM_TIMING_STATION_ID, rp, pl, ch);
           channelPlots_[chId] = ChannelPlots(ibooker, chId);
         }
       }
@@ -495,13 +499,13 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
   edm::Handle<edm::DetSetVector<TotemTimingRecHit>> timingRecHits;
   event.getByToken(tokenRecHit_, timingRecHits);
 
-  // edm::Handle<edm::DetSetVector<TotemTimingLocalTrack>> timingLocalTracks;
-  // event.getByToken(timingLocalTracks, timingLocalTracks);
+  edm::Handle<edm::DetSetVector<TotemTimingLocalTrack>> timingLocalTracks;
+  event.getByToken(tokenTrack_, timingLocalTracks);
 
   // check validity
   bool valid = true;
   valid &= timingDigis.isValid();
-  valid &= fedInfo.isValid();
+  //valid &= fedInfo.isValid();
 
   if (!valid) {
     if (verbosity_) {
@@ -513,30 +517,30 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
 
     return;
   }
-
+  
   // Using TotemTimingDigi
   std::set<uint8_t> boardSet;
   std::unordered_map<unsigned int, unsigned int> channelsPerPlane;
   std::unordered_map<unsigned int, unsigned int> channelsPerPlaneWithTime;
 
   auto lumiCache = luminosityBlockCache(event.getLuminosityBlock().index());
+
   for (const auto &digis : *timingDigis) {
-    const TotemTimingDetId detId(digis.detId());
-    TotemTimingDetId detId_pot(digis.detId());
+    const CTPPSDiamondDetId detId(digis.detId());
+    CTPPSDiamondDetId detId_pot(digis.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    TotemTimingDetId detId_plane(digis.detId());
+    CTPPSDiamondDetId detId_plane(digis.detId());
     detId_plane.setChannel(0);
-
     for (const auto &digi : digis) {
       // Pot Plots
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         potPlots_[detId_pot].activityPerBX->Fill(event.bunchCrossing());
 
         potPlots_[detId_pot].digiDistribution->Fill(detId.plane(), detId.channel());
-
-        for (auto it = digi.samplesBegin(); it != digi.samplesEnd(); ++it)
-          potPlots_[detId_pot].dataSamplesRaw->Fill(*it);
+        for (auto it = digi.samplesBegin(); it != digi.samplesEnd(); ++it){
+          //edm::LogProblem("TotemTimingDQMSource") <<*it;
+          potPlots_[detId_pot].dataSamplesRaw->Fill(*it);}
 
         float boardId = digi.eventInfo().hardwareBoardId() + 0.5 * digi.eventInfo().hardwareSampicId();
         potPlots_[detId_pot].digiSent->Fill(boardId, digi.hardwareChannelId());
@@ -586,18 +590,18 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
   // End digis
 
   for (const auto &rechits : *timingRecHits) {
-    const TotemTimingDetId detId(rechits.detId());
-    TotemTimingDetId detId_pot(rechits.detId());
+    const CTPPSDiamondDetId detId(rechits.detId());
+    CTPPSDiamondDetId detId_pot(rechits.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    TotemTimingDetId detId_plane(rechits.detId());
+    CTPPSDiamondDetId detId_plane(rechits.detId());
     detId_plane.setChannel(0);
 
     for (const auto &rechit : rechits) {
       if (potPlots_.find(detId_pot) != potPlots_.end()) {
         potPlots_[detId_pot].amplitude->Fill(rechit.amplitude());
 
-        TH2F *hitHistoTmp = potPlots_[detId_pot].hitDistribution2d->getTH2F();
+        /*TH2F *hitHistoTmp = potPlots_[detId_pot].hitDistribution2d->getTH2F();
         TAxis *hitHistoTmpYAxis = hitHistoTmp->GetYaxis();
         float yCorrected = rechit.y();
         yCorrected += (detId.rp() == TOTEM_TIMING_TOP_RP_ID) ? verticalShiftTop_ : verticalShiftBot_;
@@ -610,12 +614,32 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
                                                        hitHistoTmpYAxis->GetBinCenter(startBin + i));
           potPlots_[detId_pot].hitDistribution2d_lumisection->Fill(x_shift,
                                                                    hitHistoTmpYAxis->GetBinCenter(startBin + i));
+        }*/
+
+        float UFSDShift = 0.0;
+        if (rechit.yWidth() < 3)
+          UFSDShift = 0.5; 
+
+        TH2F* hitHistoTmp = potPlots_[detId_pot].hitDistribution2d->getTH2F();
+        TAxis* hitHistoTmpYAxis = hitHistoTmp->GetYaxis();
+        int startBin = hitHistoTmpYAxis->FindBin(rechit.x() - horizontalShiftOfDiamond_ - 0.5 * rechit.xWidth());
+        int numOfBins = rechit.xWidth() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+        for (int i = 0; i < numOfBins; ++i) {
+          potPlots_[detId_pot].hitDistribution2d->Fill(detId.plane() + UFSDShift, hitHistoTmpYAxis->GetBinCenter(startBin + i));
+          //edm::LogProblem("TotemTimingDQMSource") <<detId.plane() + UFSDShift<<" "<< hitHistoTmpYAxis->GetBinCenter(startBin + i);
         }
+
+        startBin = hitHistoTmpYAxis->FindBin(rechit.x() - horizontalShiftOfDiamond_ - 0.5 * rechit.xWidth());
+        numOfBins = rechit.xWidth() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+        for (int i = 0; i < numOfBins; ++i) {
+          potPlots_[detId_pot].hitDistribution2d_lumisection->Fill(detId.plane() + UFSDShift, hitHistoTmpYAxis->GetBinCenter(startBin + i));
+        }
+
 
         //All plots with Time
         if (rechit.time() != TotemTimingRecHit::NO_T_AVAILABLE) {
           for (int i = 0; i < numOfBins; ++i)
-            potPlots_[detId_pot].hitDistribution2dWithTime->Fill(detId.plane() + 0.25 * (rechit.x() > 2),
+            potPlots_[detId_pot].hitDistribution2dWithTime->Fill(detId.plane() + UFSDShift,
                                                                  hitHistoTmpYAxis->GetBinCenter(startBin + i));
 
           potPlots_[detId_pot].recHitTime->Fill(rechit.time());
@@ -627,17 +651,22 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
             float x_shift = (rechit.x() > 2) ? 15 : 0;
             TH1F *hitProfileHistoTmp = planePlots_[detId_plane].hitProfile->getTH1F();
             int numOfBins = rechit.yWidth() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+
             if (detId.rp() == TOTEM_TIMING_TOP_RP_ID) {
               float yCorrected = rechit.y() + verticalShiftTop_ - 0.5 * rechit.yWidth() + x_shift;
               int startBin = hitProfileHistoTmp->FindBin(yCorrected);
               for (int i = 0; i < numOfBins; ++i)
                 hitProfileHistoTmp->Fill(hitProfileHistoTmp->GetBinCenter(startBin + i));
             } else {
-              float yCorrected = rechit.y() + verticalShiftBot_ + 0.5 * rechit.yWidth() + (15 - x_shift);
-              int startBin = hitProfileHistoTmp->FindBin(yCorrected);
-              int totBins = hitProfileHistoTmp->GetNbinsX();
+              
+              //float yCorrected = rechit.y() + verticalShiftBot_ + 0.5 * rechit.yWidth() + (15 - x_shift);
+              //int startBin = hitProfileHistoTmp->FindBin(yCorrected);
+              //int totBins = hitProfileHistoTmp->GetNbinsX();
+              TAxis* hitHistoTmpYAxis = hitProfileHistoTmp->GetYaxis();
+              int startBin = hitHistoTmpYAxis->FindBin(rechit.x() - horizontalShiftOfDiamond_ - 0.5 * rechit.xWidth());
+              numOfBins = rechit.xWidth() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
               for (int i = 0; i < numOfBins; ++i)
-                hitProfileHistoTmp->Fill(hitProfileHistoTmp->GetBinCenter(totBins - startBin + i));
+                hitProfileHistoTmp->Fill(hitProfileHistoTmp->GetBinCenter(numOfBins - startBin + i));
             }
 
             if (channelsPerPlaneWithTime.find(detId_plane) != channelsPerPlaneWithTime.end())
@@ -658,13 +687,49 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
   }
   // End RecHits
 
-  // Tomography of timing using strips
-  for (const auto &rechits : *timingRecHits) {
-    const TotemTimingDetId detId(rechits.detId());
-    TotemTimingDetId detId_pot(rechits.detId());
+  // Using CTPPSDiamondLocalTrack
+  for (const auto& tracks : *timingLocalTracks) {
+    CTPPSDiamondDetId detId_pot(tracks.detId());
     detId_pot.setPlane(0);
     detId_pot.setChannel(0);
-    TotemTimingDetId detId_plane(rechits.detId());
+    const CTPPSDiamondDetId detId(tracks.detId());
+
+    for (const auto& track : tracks) {
+      if (!track.isValid())
+        continue;
+      //if (track.ootIndex() == CTPPSDiamondRecHit::TIMESLICE_WITHOUT_LEADING)
+        //continue;
+      //if (excludeMultipleHits_ && track.multipleHits() > 0)
+        //continue;
+      if (potPlots_.find(detId_pot) == potPlots_.end())
+        continue;
+
+      /*TH2F* trackHistoOOTTmp = potPlots_[detId_pot].trackDistributionOOT->getTH2F();
+      TAxis* trackHistoOOTTmpYAxis = trackHistoOOTTmp->GetYaxis();
+      int startBin = trackHistoOOTTmpYAxis->FindBin(track.x0() - horizontalShiftOfDiamond_ - track.x0Sigma());
+      int numOfBins = 2 * track.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+      for (int i = 0; i < numOfBins; ++i) {
+        trackHistoOOTTmp->Fill(track.ootIndex(), trackHistoOOTTmpYAxis->GetBinCenter(startBin + i));
+      }*/
+
+      //if (centralOOT_ != -999 && track.ootIndex() == centralOOT_) {
+        TH1F* trackHistoInTimeTmp = potPlots_[detId_pot].trackDistribution->getTH1F();
+        int startBin = trackHistoInTimeTmp->FindBin(track.x0() - horizontalShiftOfDiamond_ - track.x0Sigma());
+        int numOfBins = 2 * track.x0Sigma() * INV_DISPLAY_RESOLUTION_FOR_HITS_MM;
+        for (int i = 0; i < numOfBins; ++i) {
+          trackHistoInTimeTmp->Fill(trackHistoInTimeTmp->GetBinCenter(startBin + i));
+        }
+      //}
+    }
+  }
+
+  // Tomography of timing using strips
+  /*for (const auto &rechits : *timingRecHits) {
+    const CTPPSDiamondDetId detId(rechits.detId());
+    CTPPSDiamondDetId detId_pot(rechits.detId());
+    detId_pot.setPlane(0);
+    detId_pot.setChannel(0);
+    CTPPSDiamondDetId detId_plane(rechits.detId());
     detId_plane.setChannel(0);
 
     float y_shift = (detId.rp() == TOTEM_TIMING_TOP_RP_ID) ? 20 : 5;
@@ -713,7 +778,7 @@ void TotemTimingDQMSource::analyze(const edm::Event &event, const edm::EventSetu
         }
       }
     }
-  }
+  }*/
 
   for (auto &plt : potPlots_) {
     plt.second.planesWithDigis->Fill(plt.second.planesWithDigisSet.size());
@@ -756,9 +821,9 @@ void TotemTimingDQMSource::globalEndLuminosityBlock(const edm::LuminosityBlock &
     plot.second.meanAmplitude->Reset();
     plot.second.cellOfMax->Reset();
     plot.second.hitRate->Reset();
-    TotemTimingDetId rpId(plot.first);
+    CTPPSDiamondDetId rpId(plot.first);
     for (auto &chPlot : channelPlots_) {
-      TotemTimingDetId chId(chPlot.first);
+      CTPPSDiamondDetId chId(chPlot.first);
       if (chId.arm() == rpId.arm() && chId.rp() == rpId.rp()) {
         plot.second.baseline->Fill(chId.plane(), chId.channel(), chPlot.second.noiseSamples->getTH1F()->GetMean());
         plot.second.noiseRMS->Fill(chId.plane(), chId.channel(), chPlot.second.noiseSamples->getTH1F()->GetRMS());

@@ -41,9 +41,8 @@ float TotemTimingConversions::timeOfFirstSample(const TotemTimingDigi& digi) con
   int db = digi.hardwareBoardId();
   int sampic = digi.hardwareSampicId();
   int channel = digi.hardwareChannelId();
-  float t = firstCellTimeInstant + calibration_.timeOffset(db, sampic, channel);
+  float t = firstCellTimeInstant ;//+ calibration_.timeOffset(db, sampic, channel);
   //NOTE: If no time offset is set, timeOffset returns 0
-
   if (mergeTimePeaks_) {
     if (t < -ACCEPTED_TIME_RADIUS)
       t += SAMPIC_MAX_NUMBER_OF_SAMPLES * SAMPIC_SAMPLING_PERIOD_NS;
@@ -86,10 +85,10 @@ std::vector<float> TotemTimingConversions::timeSamples(const TotemTimingDigi& di
 
 std::vector<float> TotemTimingConversions::voltSamples(const TotemTimingDigi& digi) const {
   std::vector<float> data;
-  if (calibrationFunction_.numberOfVariables() != 1)
+  //if (calibrationFunction_.numberOfVariables() != 1)
     for (const auto& sample : digi.samples())
       data.emplace_back(SAMPIC_ADC_V * sample);
-  else {
+  /*else {
     unsigned int db = digi.hardwareBoardId();
     unsigned int sampic = digi.hardwareSampicId();
     unsigned int channel = digi.hardwareChannelId();
@@ -104,6 +103,6 @@ std::vector<float> TotemTimingConversions::voltSamples(const TotemTimingDigi& di
             << " (" << db << ", " << sampic << ", " << channel << ", " << sample_cell << ")!";
       data.emplace_back(calibrationFunction_.evaluate(std::vector<double>{(double)sample}, parameters));
     }
-  }
+  }*/
   return data;
 }

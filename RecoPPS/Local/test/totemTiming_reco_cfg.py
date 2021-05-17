@@ -39,18 +39,20 @@ elif calibrationMode == PPSTimingCalibrationModeEnum.SQLite:
 #        '/store/t0streamer/Minidaq/A/000/303/982/run303982_ls0001_streamA_StorageManager.dat',
 #    )
 #)
-process.source = cms.Source('PoolSource',
-    fileNames = cms.untracked.vstring(
-        '/store/data/Commissioning2018/ZeroBias/RAW/v1/000/314/816/00000/FCDB2DE6-4845-E811-91A1-FA163E6CD0D3.root',
-    ),
+process.source = cms.Source("EmptySource")
+
+process.totemTimingRawToDigi = cms.EDProducer('SampicTotemTimingProducer',
+sampicFilePath=cms.string("SampicDigi/SampicTotemTimingProducer/test/Ntuple_runsampic_159_runtelescope_636.root")
 )
+
+process.content = cms.EDAnalyzer("EventContentAnalyzer")
 
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(-1)
 )
 
 # raw-to-digi conversion
-process.load("EventFilter.CTPPSRawToDigi.ctppsRawToDigi_cff")
+#process.load("EventFilter.CTPPSRawToDigi.ctppsRawToDigi_cff")
 
 # rechits production
 process.load('Geometry.VeryForwardGeometry.geometryRPFromDD_2018_cfi')
@@ -64,9 +66,11 @@ process.output = cms.OutputModule("PoolOutputModule",
     ),
 )
 
+process.content = cms.EDAnalyzer("EventContentAnalyzer")
 # execution configuration
 process.p = cms.Path(
-    process.ctppsRawToDigi*
+    process.totemTimingRawToDigi*
+    process.content*
     process.totemTimingLocalReconstruction
 )
 
