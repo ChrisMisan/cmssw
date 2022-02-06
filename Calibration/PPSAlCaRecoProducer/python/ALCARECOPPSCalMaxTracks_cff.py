@@ -48,7 +48,7 @@ ctppsPixelLocalReconstructionTaskAlCaRecoProducer = cms.Task(
 
 from RecoPPS.Local.ctppsDiamondRecHits_cfi import ctppsDiamondRecHits as _ctppsDiamondRecHits
 from RecoPPS.Local.ctppsDiamondLocalTracks_cfi import ctppsDiamondLocalTracks as _ctppsDiamondLocalTracks
-ctppsDiamondRecHitsAlCaRecoProducer = _ctppsDiamondRecHits.clone(digiTag = 'ctppsDiamondRawToDigiAlCaRecoProducer')
+ctppsDiamondRecHitsAlCaRecoProducer = _ctppsDiamondRecHits.clone(digiTag = cms.InputTag("ctppsDiamondRawToDigiAlCaRecoProducer","TimingDiamond"))
 ctppsDiamondLocalTracksAlCaRecoProducer = _ctppsDiamondLocalTracks.clone(recHitsTag = 'ctppsDiamondRecHitsAlCaRecoProducer')
 
 ctppsDiamondLocalReconstructionTaskAlCaRecoProducer = cms.Task(
