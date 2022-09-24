@@ -96,7 +96,7 @@ void PPSTimingCalibrationPCLHarvester::dqmEndJob(DQMStore::IBooker& iBooker, DQM
         (int)detid.arm(), (int)detid.station(), (int)detid.plane(), (int)detid.channel()};
 
     calib_params[key] = {0, 0, 0, 0};
-    calib_time[key] = std::make_pair(0.1, 0.);
+    calib_time[key] = std::make_pair(0., 0.1);
 
     hists.leadingTime[chid] = iGetter.get(dqmDir_ + "/t_" + ch_name);
     if (hists.leadingTime[chid] == nullptr) {
@@ -124,17 +124,29 @@ void PPSTimingCalibrationPCLHarvester::dqmEndJob(DQMStore::IBooker& iBooker, DQM
     }
     const double upper_tot_range = hists.toT[chid]->getMean() + 2.5;
     {  // scope for x-profile
+    
+      std::string ch_name;
+      detid.channelName(ch_name);
+      auto profile=iBooker.bookProfile(ch_name+"_prof_x",ch_name+"_prof_x", 240, 0., 60., 450, -20., 25.);
+
       std::unique_ptr<TProfile> prof(hists.leadingTimeVsToT[chid]->getTH2F()->ProfileX("_prof_x", 1, -1));
+      *(profile->getTProfile())=*((TProfile*)prof->Clone());
+      profile->getTProfile()->SetTitle(ch_name.c_str());
+      profile->getTProfile()->SetName(ch_name.c_str());
+
+      
+
       interp_.SetParameters(hists.leadingTime[chid]->getRMS(),
                             hists.toT[chid]->getMean(),
                             0.8,
                             hists.leadingTime[chid]->getMean() - hists.leadingTime[chid]->getRMS());
-      const auto& res = prof->Fit(&interp_, "B+", "", 10.4, upper_tot_range);
-      if ((bool)res) {
+      const auto& res = profile->getTProfile()->Fit(&interp_, "B+", "", 10.4, upper_tot_range);
+      if (!(bool)res) {
         calib_params[key] = {
             interp_.GetParameter(0), interp_.GetParameter(1), interp_.GetParameter(2), interp_.GetParameter(3)};
-        calib_time[key] = std::make_pair(0.1, 0.);  // hardcoded resolution/offset placeholder for the time being
+        calib_time[key] = std::make_pair(0., 0.1);  // hardcoded offset/resolution placeholder for the time being
         // can possibly do something with interp_.GetChiSquare() in the near future
+        
       } else
         edm::LogWarning("PPSTimingCalibrationPCLHarvester:dqmEndJob")
             << "Fit did not converge for channel (" << detid << ").";
