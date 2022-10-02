@@ -1,6 +1,8 @@
+run = 357902
+input_file=['file:/eos/cms/store/express/Run2022D/StreamALCAPPSExpress/ALCAPROMPT/PromptCalibProdPPSTimingCalib-Express-v2/000/357/902/00000/123861b4-b632-4835-91b6-1e586d34509e.root']
 import FWCore.ParameterSet.Config as cms
-
-process = cms.Process("harvester")
+from Configuration.StandardSequences.Eras import eras
+process = cms.Process("harvester", eras.Run3)
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
@@ -11,26 +13,20 @@ process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '124X_dataRun3_Prompt_frozen_v4', '')
-#process.GlobalTag.toGet.append(
-#  cms.PSet(record = cms.string("PPSTimingCalibrationRcd"),
-#           tag =  cms.string("PPSDiamondSampicCalibration_test"),
-#           label = cms.untracked.string("DiamondSampicCalibration"),
-#           connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS")
-#	)
-#)
-
-
-process.load("EventFilter.CTPPSRawToDigi.ctppsRawToDigi_cff")
-process.load("RecoPPS.Configuration.recoCTPPS_cff")
 
 # Source (histograms)
-process.source = cms.Source("DQMRootSource",
-    fileNames = cms.untracked.vstring("file:worker_output.root"),
+process.source = cms.Source("PoolSource",
+    fileNames = cms.untracked.vstring(
+    
+    input_file[1:-1],
+
+    
+    ),
 )
 
 # output service for database
 process.load('CondCore.CondDB.CondDB_cfi')
-process.CondDB.connect = 'sqlite_file:ppsDiamondSampicTiming_calibration.sqlite' # SQLite output
+process.CondDB.connect = 'sqlite_file:ppsDiamondTiming_calibration'+str(run)+'.sqlite' # SQLite output
 
 process.PoolDBOutputService = cms.Service('PoolDBOutputService',
     process.CondDB,
@@ -38,33 +34,18 @@ process.PoolDBOutputService = cms.Service('PoolDBOutputService',
     toPut = cms.VPSet(
         cms.PSet(
             record = cms.string('PPSTimingCalibrationRcd'),
-            tag = cms.string('DiamondSampicCalibration'),
+            tag = cms.string('DiamondTimingCalibration'),
         )
     )
 )
-
-
-process.CondDB.connect = 'sqlite_file:test000.sqlite' # SQLite input
-process.PoolDBESSource = cms.ESSource('PoolDBESSource',
-        process.CondDB,
-        DumpStats = cms.untracked.bool(True),
-        toGet = cms.VPSet(
-            cms.PSet(
-                record = cms.string('PPSTimingCalibrationRcd'),
-                tag = cms.string('PPSDiamondSampicCalibration')
-        )
-    )
-)
-
 
 ################
 #geometry
 ################
-#process.load('Geometry.VeryForwardGeometry.geometryRPFromDD_2021_cfi')
+process.load('Geometry.VeryForwardGeometry.geometryRPFromDD_2021_cfi') 
 
-process.load("CalibPPS.TimingCalibration.PPSDiamondSampicTimingCalibrationPCLHarvester_cfi")
+process.load("CalibPPS.TimingCalibration.ppsTimingCalibrationPCLHarvester_cfi")
 #process.PPSDiamondSampicTimingCalibrationPCLHarvester.jsonCalibFile=cms.string("initial.cal.json")
-process.PPSDiamondSampicTimingCalibrationPCLHarvester.timingCalibrationTag= cms.string('')
 
 # load DQM framework
 process.load("DQMServices.Core.DQMStore_cfi")
@@ -74,10 +55,24 @@ process.dqmSaver.convention = 'Offline'
 process.dqmSaver.workflow = "/CalibPPS/TimingCalibration/CMSSW_12_0_0_pre2"
 process.dqmSaver.saveByRun = -1
 process.dqmSaver.saveAtJobEnd = True
-process.dqmSaver.forceRunNumber = 999999
+process.dqmSaver.forceRunNumber = run
+
+process.DQMStore = cms.Service("DQMStore")
+
+process.dqmOutput = cms.OutputModule("DQMRootOutputModule",
+    fileName = cms.untracked.string("harvester_output.root")
+)
+
+process.load("DQMServices.Components.EDMtoMEConverter_cff")
+process.EDMtoMEConverter.lumiInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterLumi")
+process.EDMtoMEConverter.runInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterRun")
+
+import FWCore.PythonUtilities.LumiList as LumiList
+process.source.lumisToProcess = LumiList.LumiList(filename = 'allrunsSB-PPS-forCalib.json').getVLuminosityBlockRange() 
 
 process.p = cms.Path(
-    process.PPSDiamondSampicTimingCalibrationPCLHarvester
+    process.EDMtoMEConverter*
+    process.ppsTimingCalibrationPCLHarvester
 )
 
 process.end_path = cms.EndPath(
