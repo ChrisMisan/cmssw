@@ -41,8 +41,8 @@ process.source = cms.Source("PoolSource",
 
 
 from Configuration.AlCa.GlobalTag import GlobalTag
-#process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run2_hlt_relval', '')
-process.GlobalTag = GlobalTag(process.GlobalTag, '124X_dataRun3_Prompt_frozen_v4', '')
+from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag = GlobalTag(process.GlobalTag, autoCond['run3_data_prompt'], '')
 process.GlobalTag.toGet = cms.VPSet()
 process.GlobalTag.toGet.append(
   cms.PSet(record = cms.string("PPSTimingCalibrationRcd"),

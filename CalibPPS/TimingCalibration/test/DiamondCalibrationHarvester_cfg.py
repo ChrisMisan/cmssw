@@ -12,15 +12,13 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '124X_dataRun3_Prompt_frozen_v4', '')
+from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag = GlobalTag(process.GlobalTag, autoCond['run3_data_prompt'], '')
 
 # Source (histograms)
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-    
-    input_file[1:-1],
-
-    
+    input_file
     ),
 )
 
@@ -39,11 +37,6 @@ process.PoolDBOutputService = cms.Service('PoolDBOutputService',
     )
 )
 
-################
-#geometry
-################
-process.load('Geometry.VeryForwardGeometry.geometryRPFromDD_2021_cfi') 
-
 process.load("CalibPPS.TimingCalibration.ppsTimingCalibrationPCLHarvester_cfi")
 #process.PPSDiamondSampicTimingCalibrationPCLHarvester.jsonCalibFile=cms.string("initial.cal.json")
 
@@ -52,7 +45,7 @@ process.load("DQMServices.Core.DQMStore_cfi")
 process.load("DQMServices.Components.DQMEnvironment_cfi")
 process.dqmEnv.subSystemFolder = "CalibPPS"
 process.dqmSaver.convention = 'Offline'
-process.dqmSaver.workflow = "/CalibPPS/TimingCalibration/CMSSW_12_0_0_pre2"
+process.dqmSaver.workflow = "/CalibPPS/TimingCalibration/CMSSW_12_6_0_pre2"
 process.dqmSaver.saveByRun = -1
 process.dqmSaver.saveAtJobEnd = True
 process.dqmSaver.forceRunNumber = run

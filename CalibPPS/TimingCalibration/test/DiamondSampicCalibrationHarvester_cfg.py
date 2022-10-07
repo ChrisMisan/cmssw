@@ -10,7 +10,8 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '124X_dataRun3_Prompt_frozen_v4', '')
+from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag = GlobalTag(process.GlobalTag, autoCond['run3_data_prompt'], '')
 #process.GlobalTag.toGet.append(
 #  cms.PSet(record = cms.string("PPSTimingCalibrationRcd"),
 #           tag =  cms.string("PPSDiamondSampicCalibration_test"),
@@ -44,7 +45,7 @@ process.PoolDBOutputService = cms.Service('PoolDBOutputService',
 )
 
 
-process.CondDB.connect = 'sqlite_file:test000.sqlite' # SQLite input
+process.CondDB.connect = 'sqlite_file:corrected_sampic.sqlite' # SQLite input
 process.PoolDBESSource = cms.ESSource('PoolDBESSource',
         process.CondDB,
         DumpStats = cms.untracked.bool(True),
@@ -56,12 +57,6 @@ process.PoolDBESSource = cms.ESSource('PoolDBESSource',
     )
 )
 
-
-################
-#geometry
-################
-#process.load('Geometry.VeryForwardGeometry.geometryRPFromDD_2021_cfi')
-
 process.load("CalibPPS.TimingCalibration.PPSDiamondSampicTimingCalibrationPCLHarvester_cfi")
 #process.PPSDiamondSampicTimingCalibrationPCLHarvester.jsonCalibFile=cms.string("initial.cal.json")
 process.PPSDiamondSampicTimingCalibrationPCLHarvester.timingCalibrationTag= cms.string('')
@@ -71,7 +66,7 @@ process.load("DQMServices.Core.DQMStore_cfi")
 process.load("DQMServices.Components.DQMEnvironment_cfi")
 process.dqmEnv.subSystemFolder = "CalibPPS"
 process.dqmSaver.convention = 'Offline'
-process.dqmSaver.workflow = "/CalibPPS/TimingCalibration/CMSSW_12_0_0_pre2"
+process.dqmSaver.workflow = "/CalibPPS/TimingCalibration/CMSSW_12_6_0_pre2"
 process.dqmSaver.saveByRun = -1
 process.dqmSaver.saveAtJobEnd = True
 process.dqmSaver.forceRunNumber = 999999

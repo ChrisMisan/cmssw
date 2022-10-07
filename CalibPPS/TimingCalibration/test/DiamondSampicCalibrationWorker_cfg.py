@@ -4,13 +4,14 @@ process = cms.Process("worker")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load('RecoPPS.Local.totemTimingLocalReconstruction_cff')
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, '124X_dataRun3_Prompt_frozen_v4', '') 
+from Configuration.AlCa.autoCond import autoCond
+process.GlobalTag = GlobalTag(process.GlobalTag, autoCond['run3_data_prompt'], '') 
 
 process.source = cms.Source('PoolSource',
     fileNames = cms.untracked.vstring(
@@ -21,7 +22,7 @@ process.source = cms.Source('PoolSource',
 )
 
 process.load('CondCore.CondDB.CondDB_cfi')
-process.CondDB.connect = 'sqlite_file:test000.sqlite' # SQLite input
+process.CondDB.connect = 'sqlite_file:corrected_sampic.sqlite' # SQLite input
 process.PoolDBESSource = cms.ESSource('PoolDBESSource',
         process.CondDB,
         DumpStats = cms.untracked.bool(True),
@@ -41,7 +42,7 @@ process.totemTimingRawToDigi.rawDataTag = cms.InputTag("hltPPSCalibrationRaw")
 ################
 #geometry
 ################
-process.load('Geometry.VeryForwardGeometry.geometryRPFromDD_2022_cfi')
+process.load("Geometry.VeryForwardGeometry.geometryRPFromDB_cfi")
 
 process.load("CalibPPS.TimingCalibration.PPSDiamondSampicTimingCalibrationPCLWorker_cfi")
 process.DQMStore = cms.Service("DQMStore")
