@@ -1,5 +1,5 @@
 run = 357902
-input_file=['file:/eos/cms/store/express/Run2022D/StreamALCAPPSExpress/ALCAPROMPT/PromptCalibProdPPSTimingCalib-Express-v2/000/357/902/00000/123861b4-b632-4835-91b6-1e586d34509e.root']
+input_file=['/store/express/Run2022D/StreamALCAPPSExpress/ALCAPROMPT/PromptCalibProdPPSTimingCalib-Express-v2/000/357/902/00000/123861b4-b632-4835-91b6-1e586d34509e.root']
 import FWCore.ParameterSet.Config as cms
 from Configuration.StandardSequences.Eras import eras
 process = cms.Process("harvester", eras.Run3)
@@ -56,6 +56,7 @@ process.dqmOutput = cms.OutputModule("DQMRootOutputModule",
     fileName = cms.untracked.string("harvester_output.root")
 )
 
+process.load("Geometry.VeryForwardGeometry.geometryRPFromDB_cfi")
 process.load("DQMServices.Components.EDMtoMEConverter_cff")
 process.EDMtoMEConverter.lumiInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterLumi")
 process.EDMtoMEConverter.runInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterRun")
