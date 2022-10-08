@@ -60,8 +60,8 @@ process.load("DQMServices.Components.EDMtoMEConverter_cff")
 process.EDMtoMEConverter.lumiInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterLumi")
 process.EDMtoMEConverter.runInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterRun")
 
-import FWCore.PythonUtilities.LumiList as LumiList
-process.source.lumisToProcess = LumiList.LumiList(filename = 'allrunsSB-PPS-forCalib.json').getVLuminosityBlockRange() 
+#import FWCore.PythonUtilities.LumiList as LumiList
+#process.source.lumisToProcess = LumiList.LumiList(filename = 'allrunsSB-PPS-forCalib.json').getVLuminosityBlockRange() 
 
 process.p = cms.Path(
     process.EDMtoMEConverter*
