@@ -31,14 +31,14 @@ process.PoolDBOutputService = cms.Service('PoolDBOutputService',
     timetype = cms.untracked.string('runnumber'),
     toPut = cms.VPSet(
         cms.PSet(
-            record = cms.string('PPSTimingCalibrationRcd'),
-            tag = cms.string('DiamondTimingCalibration'),
+            record = 'PPSTimingCalibrationRcd',
+            tag = 'DiamondTimingCalibration',
         )
     )
 )
 
 process.load("CalibPPS.TimingCalibration.ppsTimingCalibrationPCLHarvester_cfi")
-#process.PPSDiamondSampicTimingCalibrationPCLHarvester.jsonCalibFile=cms.string("initial.cal.json")
+#process.PPSDiamondSampicTimingCalibrationPCLHarvester.jsonCalibFile="initial.cal.json"
 
 # load DQM framework
 process.load("DQMServices.Core.DQMStore_cfi")
@@ -53,13 +53,13 @@ process.dqmSaver.forceRunNumber = run
 process.DQMStore = cms.Service("DQMStore")
 
 process.dqmOutput = cms.OutputModule("DQMRootOutputModule",
-    fileName = cms.untracked.string("harvester_output.root")
+    fileName = "harvester_output.root"
 )
 
 process.load("Geometry.VeryForwardGeometry.geometryRPFromDB_cfi")
 process.load("DQMServices.Components.EDMtoMEConverter_cff")
-process.EDMtoMEConverter.lumiInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterLumi")
-process.EDMtoMEConverter.runInputTag = cms.InputTag("MEtoEDMConvertPPSTimingCalib", "MEtoEDMConverterRun")
+process.EDMtoMEConverter.lumiInputTag = "MEtoEDMConvertPPSTimingCalib:MEtoEDMConverterLumi"
+process.EDMtoMEConverter.runInputTag = "MEtoEDMConvertPPSTimingCalib:MEtoEDMConverterRun"
 
 #import FWCore.PythonUtilities.LumiList as LumiList
 #process.source.lumisToProcess = LumiList.LumiList(filename = 'allrunsSB-PPS-forCalib.json').getVLuminosityBlockRange() 
